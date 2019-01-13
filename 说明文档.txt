@@ -1,0 +1,63 @@
+猫眼专业版票房信息
+
+* 字体库加密
+
+
+https://piaofang.maoyan.com/?date=2019-01-10
+直接请求url会被重定向到https://piaofang.maoyan.com/dashboard
+
+实际是ajax传递的
+https://piaofang.maoyan.com/dayoffice?date=2019-01-10&cnt=10
+
+
+获得json，需要的信息是存放在‘ticketList’键中的
+是html代码块，用pyquery解析
+
+加user-agent和referer 请求获得：
+{'name': '前任3：再见前任', 'time': '2018-01-01', 'ljpf': '\uf0f8.\ue1eb\uf696亿', 'sysj': '上映4天', 'sspf': '\ue1eb\uf1e4\uf0f8\ue530\uec94.\uf0f8\uf696', 'pfzb': '\uf624\uf624.\uedc8%', 'ppzb': '\uf1e4\ue530.\ueddd%', 'szl': '\uf0f8\uf1e4.\uf624%'}
+
+后发现在haders上加uid配合X-Requested-With 可以获得：
+{'name': '咕噜咕噜美人鱼', 'time': '2018-01-01', 'ljpf': '1392.5万', 'sysj': '上映752天', 'sspf': '1.01', 'pfzb': '0.0%', 'ppzb': '0.0%', 'szl': '11.7% ', 'url': '/movie/342109?_v_=yes'}
+本来想用字体库解密的 结果ajax直接返回的是没有被加密的。。。。。。
+
+获得url后请求影片信息网页，发现城市票房和影投票房是加密的 就对他下手了
+
+查看网页源码
+发现需要的信息长这样
+p class="topboard-name-text">北京</p>
+          </div>
+          <div class="topboard-num">
+            <span><i class="cs">&#xef54;&#xec4e;&#xef54;&#xec4e;.&#xf7de;</i></span><span class="topboard-num-unit">万</span>
+
+&#xef54;&#xec4e;&#xef54;&#xec4e;.&#xf7de; 这个原来应该是数字
+说明数字被转译成网页不认识的字符了，但是显示是正常的，说明这些字符所对应的数据浏览器是知道的
+
+搜索一下字体文件otf,woff 找到了这个：
+
+<style id="js-nuwa">
+  @font-face{font-family:"cs";src:url(data:application/font-woff;charset=utf-8;base64,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) format("woff");}
+.cs{font-family:cs}
+</style>
+
+很明显他就是这个网页的自定义字体库了， 上面写着base64说明用base64加密了，正则匹配下来用base64解密一下，最开始我以为加密的是字体文件的地址，然而什么编码都解析不了，直到把他保存下来在发现这个解密出来的直接就是字体文件的内容了。
+
+用fontTools把字体文件转换成xml文件，我们就可以查看文件了
+
+<GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name="glyph00000"/>
+    <GlyphID id="1" name="x"/>
+    <GlyphID id="2" name="uniEC4E"/>
+    <GlyphID id="3" name="uniEF54"/>
+    <GlyphID id="4" name="uniEAC1"/>
+    <GlyphID id="5" name="uniF66E"/>
+    <GlyphID id="6" name="uniE1D7"/>
+    <GlyphID id="7" name="uniE1B2"/>
+    <GlyphID id="8" name="uniE78B"/>
+    <GlyphID id="9" name="uniECED"/>
+    <GlyphID id="10" name="uniF7DE"/>
+    <GlyphID id="11" name="uniF2C3"/>
+  </GlyphOrder>
+
+在xml文件找出各个字符对应的字形，把他们和0-9对应起来，这就知道字符的对应关系了，
+每次打开网页的字符和对应顺序都不同，但是字形是一样的，所有我们要读取本地字符文件的字形，按照0-9的顺序存到list中，然后每次访问网站先获取字体文件，找出各个对应的字形，排序存入到list中，list的值就是这个乱码的字符，下标就是这个字符对应的值了
