@@ -67,6 +67,7 @@ class MaoYan(object):
         while True:
             try:
                 if header is None:
+                    header = dict()
                     header['user-agent'] = ua.random_userAgent()
                 else:
                     header = header
